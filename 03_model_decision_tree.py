@@ -20,9 +20,9 @@ import xgboost as xgb
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import roc_curve, accuracy_score, mean_squared_error
+from sklearn.metrics import roc_curve, accuracy_score, mean_squared_error, confusion_matrix
 
-from sklearn.model_selection import train_test_split, cross_val_predict
+from sklearn.model_selection import train_test_split, cross_val_predict, cross_val_score
 from sklearn.ensemble import (
     RandomForestClassifier,
     BaggingClassifier,
@@ -36,16 +36,16 @@ import os
 # %% load data
 
 # # desktop
-cwd = 'D:/Dropbox/programowanie/projekt_microdata/'
-data = pd.read_csv(cwd + '/final_data.csv', 
-                   sep = ',', 
-                   decimal = '.')
-
-# # laptop
 # cwd = 'D:/Dropbox/programowanie/projekt_microdata/'
-# data = pd.read_csv(cwd + '/final_data.csv',
-#                    sep=',',
-#                    decimal='.',)
+# data = pd.read_csv(cwd + '/final_data.csv', 
+#                    sep = ',', 
+#                    decimal = '.')
+
+# laptop
+cwd = '/home/michal/Dropbox/programowanie/projekt_microdata/'
+data = pd.read_csv(cwd + '/final_data.csv',
+                   sep=',',
+                   decimal='.',)
 
 data.head(10)
 
@@ -137,7 +137,7 @@ plt.show()
 g = sns.pairplot(X_test[var_to_plot])
 plt.show()
 
-#%% model xgboost
+#%% model xgboost ####################################################
 
 # params
 params = {
@@ -153,8 +153,30 @@ params = {
 
 model_xgb = xgb.XGBRFClassifier(**params)
 model_xgb = model_xgb.fit(X_train.values, y_train.values)
+
+#%% model GradientBoosting ####################################################
+params = {
+    'learning_rate': 0.2,
+    'max_depth': 6,
+    'n_estimators': 30,
+    # 'metric': 'auc',
+    'subsample': 0.78,
+    # 'colsample_bytree': 0.94,
+    # 'min_samples_leaf': 300,
+    # use_label_encoder:False
+}
+
+model_gbc = GradientBoostingClassifier(**params)
+model_gbc = model_gbc.fit(X_train.values, y_train.values)
+
+#%% choose model to analyze
+
+# model_curr = model_xgb
+model_curr = model_gbc
+
+
 # %% diagnostics: importance table
-imp = calc_importance(model = model_xgb, variables = vars)
+imp = calc_importance(model = model_curr, variables = vars)
 
 plt.figure(figsize=(15, 15))
 plt.scatter(x=imp['impo'], y=imp['vars'])
@@ -162,10 +184,10 @@ plt.show()
 
 # %% diagnostics: Gini train
 train = X_train.copy()
-train['pr'] = model_xgb.predict_proba(X_train)[:, 0]
+train['pr'] = model_curr.predict_proba(X_train)[:, 0]
 
 test = X_test.copy()
-test['pr'] = model_xgb.predict_proba(X_test)[:, 0]
+test['pr'] = model_curr.predict_proba(X_test)[:, 0]
 
 gini_train = calc_gini(prediction=train['pr'].values, realization=y_train)
 gini_test = calc_gini(prediction=test['pr'].values, realization=y_test)
@@ -174,15 +196,15 @@ print(gini_train)
 print(gini_test)
 
 # %% diagnostics: bootstrapped Gini (with quantiles) for test
-gini_boot_train = calc_gini_boot(model=model_xgb,
+gini_boot_train = calc_gini_boot(model=model_curr,
                                  data=X_train,
                                  realization=y_train, 
                                  iters=100)
 print(np.quantile(gini_boot_train, 0.05))
 print(gini_train)
-print(np.quantile(gini_boot_train, 0.95))
+print(np.quantile(gini_boot_train, 0.95), '\n')
 
-gini_boot_test = calc_gini_boot(model=model_xgb,
+gini_boot_test = calc_gini_boot(model=model_curr,
                                 data=X_test,
                                 realization=y_test, 
                                 iters=100)
@@ -201,29 +223,37 @@ print(np.quantile(gini_boot_test, 0.95))
 #         class_names=[0, 1],
 #         filled=True,)
 
-# plot_single_tree(model_xgb, X_train, 1)
+# plot_single_tree(model_curr, X_train, 1)
 # plt.show()
 
-xgb.plot_tree(model_xgb)
+xgb.plot_tree(model_curr)
 plt.show()
 
 fig, ax = plt.subplots(figsize=(50, 50))
-xgb.plot_tree(model, num_trees=90, ax=ax)
+xgb.plot_tree(model_curr, num_trees=90, ax=ax)
 # plt.show()
 plt.savefig("single_tree.pdf")
 plt.close()
 
-# %% diagnostics: plot learnign curve
+# %% diagnostics: plot learning curve
 
 # TODO check what is wrong with the warnings
 import warnings
 warnings.filterwarnings("ignore")
 
-learn = learning_curves(model_xgb, prepared_data[vars], prepared_data['Attrition'], 500)
+learn = learning_curves(model_curr, prepared_data[vars], prepared_data['Attrition'], 50)
 
 plt.plot(np.sqrt(learn['train_errors']), 'r+', linewidth=2, label='train_errors')
 plt.plot(np.sqrt(learn['val_errors']), 'b-', linewidth=3, label='val_errors')
 plt.legend()
 plt.show()
 
-# %%
+# %% cross-validation
+
+print(cross_val_score(model_curr, X_train, y_train, cv=3, scoring="accuracy", verbose=0))
+print(cross_val_score(model_curr, X_train, y_train, cv=3, scoring="recall", verbose=0))
+print(cross_val_score(model_curr, X_train, y_train, cv=3, scoring="roc_auc", verbose=0))
+
+# confusion matrix
+y_train_pred = cross_val_predict(model_curr, X_train, y_train, cv=3)
+confusion_matrix(y_train, y_train_pred) / len(y_train) * 100
