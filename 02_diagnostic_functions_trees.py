@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, mean_squared_error
 from sklearn.model_selection import train_test_split
+import math
 
 def calc_importance(model, variables):
     '''
@@ -75,7 +76,7 @@ def calc_gini_boot(model, data, realization, iters):
 
 def learning_curves(model, X, y, step):
     '''
-    Calculate learning curve.
+    Calculate learning curve. Calculation starts at 10% of training input.
 
     :model model object (tested for xgboost)
     :X input data
@@ -88,7 +89,10 @@ def learning_curves(model, X, y, step):
     print(f'Len: {len(X_train)}')
 
     train_errors, val_errors = [], []
-    for m in range(1, len(X_train), step):  # 3528 podzielnosc bez reszty 42, 49, 36, 24, 12 etc
+
+    start_iter = len(X_train) / 10
+    start_iter = math.ceil(start_iter)
+    for m in range(start_iter, len(X_train), step):
         if m <= len(X_train):
             model.fit(X_train[:m], y_train[:m])
             y_train_predict = model.predict(X_train[:m])
