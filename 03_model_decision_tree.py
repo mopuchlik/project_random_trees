@@ -33,19 +33,24 @@ from sklearn.ensemble import (
 from sklearn.tree import DecisionTreeClassifier
 import os
 
+# custom diagnostics
+import modules.diags as diags
+
 # %% load data
 
 # # desktop
 # cwd = 'D:/Dropbox/programowanie/projekt_microdata/'
-# data = pd.read_csv(cwd + '/final_data.csv', 
-#                    sep = ',', 
-#                    decimal = '.')
 
-# laptop
-cwd = '/home/michal/Dropbox/programowanie/projekt_microdata/'
-data = pd.read_csv(cwd + '/final_data.csv',
-                   sep=',',
-                   decimal='.',)
+# laptop win
+cwd = 'C:/Users/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+
+# laptop linux
+# cwd = '/home/michal/Dropbox/programowanie/projekt_microdata/'
+
+data = pd.read_csv(cwd + '/final_data.csv', 
+                   sep = ',', 
+                   decimal = '.')
+
 
 data.head(10)
 
@@ -90,7 +95,7 @@ for var in ['BusinessTravel',
             'JobRole',
             'MaritalStatus',]:
 
-    onehot_data = OneHotEncoder(sparse_output=False)
+    onehot_data = OneHotEncoder(sparse=False)
     onehot_data = onehot_data.fit_transform(np.array(data[var]).reshape(-1, 1))
     in_data = pd.DataFrame(onehot_data)
     in_data.columns = [var + str(x) for x in in_data.columns]
@@ -176,7 +181,7 @@ model_curr = model_gbc
 
 
 # %% diagnostics: importance table
-imp = calc_importance(model = model_curr, variables = vars)
+imp = diags.calc_importance(model = model_curr, variables = vars)
 
 plt.figure(figsize=(15, 15))
 plt.scatter(x=imp['impo'], y=imp['vars'])
@@ -189,25 +194,25 @@ train['pr'] = model_curr.predict_proba(X_train)[:, 0]
 test = X_test.copy()
 test['pr'] = model_curr.predict_proba(X_test)[:, 0]
 
-gini_train = calc_gini(prediction=train['pr'].values, realization=y_train)
-gini_test = calc_gini(prediction=test['pr'].values, realization=y_test)
+gini_train = diags.calc_gini(prediction=train['pr'].values, realization=y_train)
+gini_test = diags.calc_gini(prediction=test['pr'].values, realization=y_test)
 
 print(gini_train)
 print(gini_test)
 
 # %% diagnostics: bootstrapped Gini (with quantiles) for test
-gini_boot_train = calc_gini_boot(model=model_curr,
-                                 data=X_train,
-                                 realization=y_train, 
-                                 iters=100)
+gini_boot_train = diags.calc_gini_boot(model=model_curr,
+                                       data=X_train,
+                                       realization=y_train, 
+                                       iters=100)
 print(np.quantile(gini_boot_train, 0.05))
 print(gini_train)
 print(np.quantile(gini_boot_train, 0.95), '\n')
 
-gini_boot_test = calc_gini_boot(model=model_curr,
-                                data=X_test,
-                                realization=y_test, 
-                                iters=100)
+gini_boot_test = diags.calc_gini_boot(model=model_curr,
+                                      data=X_test,
+                                      realization=y_test, 
+                                      iters=100)
 print(np.quantile(gini_boot_test, 0.05))
 print(gini_test)
 print(np.quantile(gini_boot_test, 0.95))
@@ -241,7 +246,7 @@ plt.close()
 import warnings
 warnings.filterwarnings("ignore")
 
-learn = learning_curves(model_curr, prepared_data[vars], prepared_data['Attrition'], 50)
+learn = diags.learning_curves(model_curr, prepared_data[vars], prepared_data['Attrition'], 50)
 
 plt.plot(np.sqrt(learn['train_errors']), 'r+', linewidth=2, label='train_errors')
 plt.plot(np.sqrt(learn['val_errors']), 'b-', linewidth=3, label='val_errors')
@@ -257,3 +262,5 @@ print(cross_val_score(model_curr, X_train, y_train, cv=3, scoring="roc_auc", ver
 # confusion matrix
 y_train_pred = cross_val_predict(model_curr, X_train, y_train, cv=3)
 confusion_matrix(y_train, y_train_pred) / len(y_train) * 100
+
+# %%
