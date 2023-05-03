@@ -16,9 +16,18 @@ import os
 import numpy as np
 import time
 
+#%% paths 
+
+path_main = 'D:/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+# path_main = '/home/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+
+path_input = path_main + '/data_input'
+path_output = path_main + '/data_output'
+
+
 #current working directory
-os.chdir('D:/Dropbox/programowanie/projekt_microdata')
-# os.chdir('/home/michal/Dropbox/programowanie/projekt_microdata')
+os.chdir(path_input)
+# os.chdir('/home/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees/data_input')
 print('Current working directory: {0}'.format(os.getcwd()))
 
 #%% general data
@@ -165,5 +174,5 @@ stats['EmployeeID'] = data.index + 1
 data = data.merge(stats, on='EmployeeID', how='outer')
 
 # %% write data
-data.to_csv('final_data.csv', index=False)
+data.to_csv(path_output + '/final_data.csv', index=False)
 

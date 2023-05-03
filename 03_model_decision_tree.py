@@ -36,26 +36,22 @@ import os
 # custom diagnostics
 import modules.diags as diags
 
+#%% paths 
+
+path_main = 'D:/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+# path_main = '/home/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+# path_main = 'C:/Users/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees' 
+
+path_input = path_main + '/data_output'
+
 # %% load data
 
-# # desktop
-# cwd = 'D:/Dropbox/programowanie/projekt_microdata/'
-
-# laptop win
-cwd = 'C:/Users/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
-
-# laptop linux
-# cwd = '/home/michal/Dropbox/programowanie/projekt_microdata/'
-
-data = pd.read_csv(cwd + '/final_data.csv', 
+data = pd.read_csv(path_input + '/final_data.csv', 
                    sep = ',', 
                    decimal = '.')
 
 
 data.head(10)
-
-os.chdir(cwd)
-print("Current working directory: {0}".format(os.getcwd()))
 
 #%% change Attrition to 0-1
 data['Attrition'].replace(('Yes', 'No'), (1, 0), inplace=True)
