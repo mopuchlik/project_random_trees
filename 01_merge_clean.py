@@ -18,8 +18,8 @@ import time
 
 #%% paths 
 
-path_main = 'D:/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
-# path_main = '/home/michal/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+# path_main = 'D:/Dropbox/programowanie/projekt_microdata/projekt_random_trees'
+path_main = '/home/michal/Dropbox/programowanie/projekt_microdata/project_rand_trees/'
 
 path_input = path_main + '/data_input'
 path_output = path_main + '/data_output'
@@ -172,6 +172,13 @@ print('Execution time:', time_diff, 'sec')
 #%% merge together
 stats['EmployeeID'] = data.index + 1
 data = data.merge(stats, on='EmployeeID', how='outer')
+
+#%% indicate categorical and numerical features
+numeric_features = [feature for feature in data.columns if data[feature].dtype != 'O']
+categorical_features = [feature for feature in data.columns if data[feature].dtype == 'O']
+
+print(f'We have {len(numeric_features)} numerical features: {numeric_features} \n')
+print(f'We have {len(categorical_features)} categorical features: {categorical_features}')
 
 # %% write data
 data.to_csv(path_output + '/final_data.csv', index=False)
